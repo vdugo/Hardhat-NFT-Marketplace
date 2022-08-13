@@ -5,6 +5,8 @@ error NftMarketplace__PriceMustBeAboveZero();
 error NftMarketplace__NotApprovedForMarketplace();
 error NftMarketplace__AlreadyListed(address nftAddress, uint256 tokenId);
 error NftMarketplace__NotOwner();
+error NftMarketplace__NotListed(address nftAddress, uint256 tokenId);
+error NftMarketplace__PriceNotMet(address nftAddress, uint256 tokenId, uint256 price);
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
@@ -27,6 +29,17 @@ contract NftMarketplace
         if (listing.price > 0)
         {
             revert NftMarketplace__AlreadyListed(nftAddress, tokenId);
+        }
+
+        _;
+    }
+
+    modifier isListed(address nftAddress, uint256 tokenId)
+    {
+        Listing memory listing = s_listings[nftAddress][tokenId];
+        if (listing.price <= 0)
+        {
+            revert NftMarketplace__NotListed(nftAddress, tokenId);
         }
 
         _;
@@ -73,8 +86,15 @@ contract NftMarketplace
         emit ItemListed(msg.sender, nftAddress, tokenId, price);
     }
 
-    function buyItem() external payable
+    function buyItem(address nftAddress, uint256 tokenId) 
+    external 
+    payable
+    isListed(nftAddress, tokenId)
     {
-        
+        Listing memory listedItem = s_listings[nftAddress][tokenId];
+        if (msg.value < listedItem.price)
+        {
+            revert NftMarketplace__PriceNotMet(nftAddress, tokenId, listedItem.price);
+        }
     }
 }
