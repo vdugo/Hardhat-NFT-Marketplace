@@ -4,6 +4,7 @@ pragma solidity ^0.8.7;
 error NftMarketplace__PriceMustBeAboveZero();
 error NftMarketplace__NotApprovedForMarketplace();
 error NftMarketplace__AlreadyListed(address nftAddress, uint256 tokenId);
+error NftMarketplace__NotOwner();
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
@@ -31,7 +32,31 @@ contract NftMarketplace
         _;
     }
 
-    function listItem(address nftAddress, uint256 tokenId, uint256 price) external
+    modifier isOwner(address nftAddress, uint256 tokenId, address spender)
+    {
+        IERC721 nft = IERC721(nftAddress);
+        address owner = nft.ownerOf(tokenId);
+
+        if (spender != owner)
+        {
+            revert NftMarketplace__NotOwner();
+        }
+
+        _;
+    }
+
+    /**
+     * @dev If we had the contract be the escrow, it would be a lot more gas expensive.
+     * @param nftAddress The address of the NFT
+     * @param tokenId The token id of the NFT
+     * @param price The sale price of the NFT
+     */
+    function listItem(
+        address nftAddress, 
+        uint256 tokenId, 
+        uint256 price) 
+        external
+        notListed(nftAddress, tokenId, msg.sender)
     {
         if (price <= 0)
         {
@@ -46,5 +71,10 @@ contract NftMarketplace
         }
         s_listings[nftAddress][tokenId] = Listing(price, msg.sender);
         emit ItemListed(msg.sender, nftAddress, tokenId, price);
+    }
+
+    function buyItem() external payable
+    {
+        
     }
 }
