@@ -7,6 +7,8 @@ error NftMarketplace__AlreadyListed(address nftAddress, uint256 tokenId);
 error NftMarketplace__NotOwner();
 error NftMarketplace__NotListed(address nftAddress, uint256 tokenId);
 error NftMarketplace__PriceNotMet(address nftAddress, uint256 tokenId, uint256 price);
+error NftMarketplace__NoProceeds();
+error NftMarketplace__TransferFailed();
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -131,5 +133,23 @@ contract NftMarketplace is ReentrancyGuard
     {
         s_listings[nftAddress][tokenId].price = newPrice;
         emit ItemListed(msg.sender, nftAddress, tokenId, newPrice);
+    }
+
+    function withdrawProceeds() external
+    {
+        uint256 proceeds = s_proceeds[msg.sender];
+
+        if (proceeds <= 0)
+        {
+            revert NftMarketplace__NoProceeds();
+        }
+        s_proceeds[msg.sender] = 0;
+
+        (bool success, ) = payable(msg.sender).call{value: proceeds}("");
+
+        if (!success)
+        {
+            revert NftMarketplace__TransferFailed();
+        }
     }
 }
