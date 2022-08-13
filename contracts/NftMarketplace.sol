@@ -9,8 +9,9 @@ error NftMarketplace__NotListed(address nftAddress, uint256 tokenId);
 error NftMarketplace__PriceNotMet(address nftAddress, uint256 tokenId, uint256 price);
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract NftMarketplace
+contract NftMarketplace is ReentrancyGuard
 {
     struct Listing
     {
@@ -94,6 +95,7 @@ contract NftMarketplace
     function buyItem(address nftAddress, uint256 tokenId) 
     external 
     payable
+    nonReentrant
     isListed(nftAddress, tokenId)
     {
         Listing memory listedItem = s_listings[nftAddress][tokenId];
