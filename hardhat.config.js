@@ -44,11 +44,8 @@ module.exports = {
   },
   namedAccounts: {
     deployer: {
-      default: 0
+      default: 0,
     },
-    player: {
-      default: 1
-    }
   },
   etherscan: {
     apiKey: {
