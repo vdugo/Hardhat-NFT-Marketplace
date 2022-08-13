@@ -20,8 +20,13 @@ contract NftMarketplace
 
     event ItemListed(address indexed seller, address indexed nftAddress, uint256 indexed tokenId, uint256 price);
 
+    event ItemBought(address indexed buyer, address indexed nftAddress, uint256 indexed tokenId, uint256 price);
+
     // NFT contract address -> NFT token id -> Listing
     mapping(address => mapping(uint256 => Listing)) private s_listings;
+
+    // seller address -> amount earned
+    mapping(address => uint256) private s_proceeds;
 
     modifier notListed(address nftAddress, uint256 tokenId, address owner)
     {
@@ -96,5 +101,13 @@ contract NftMarketplace
         {
             revert NftMarketplace__PriceNotMet(nftAddress, tokenId, listedItem.price);
         }
+        // we don't want to just send the seller the money
+        // we want to have them withdraw the money
+        // this shifts the risk of working with money to the user
+        s_proceeds[listedItem.seller] += msg.value;
+        delete s_listings[nftAddress][tokenId];
+        IERC721(nftAddress).safeTransferFrom(listedItem.seller, msg.sender, tokenId);
+
+        emit ItemBought(msg.sender, nftAddress, tokenId, listedItem.price);
     }
 }
