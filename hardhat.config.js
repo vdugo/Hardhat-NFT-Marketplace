@@ -46,6 +46,9 @@ module.exports = {
     deployer: {
       default: 0,
     },
+    player: {
+      default: 1
+    }
   },
   etherscan: {
     apiKey: {
