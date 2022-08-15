@@ -12,6 +12,8 @@ describe("NftMarketplace Unit Tests", async () =>
 
     const INSUFFICIENT_PRICE = ethers.utils.parseEther("0.05")
 
+    const NEW_PRICE = ethers.utils.parseEther("0.2")
+
     const TOKEN_ID = 0
 
     beforeEach(async () =>
@@ -162,6 +164,39 @@ describe("NftMarketplace Unit Tests", async () =>
         {
             await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
             expect(await nftMarketplace.buyItem(basicNft.address, TOKEN_ID, {value: PRICE})).to.emit("ItemBought")
+        })
+    })
+
+    describe("updateListing", async () =>
+    {
+        it("reverts if attempting to update a listing that does not exist", async () =>
+        {
+            await expect(nftMarketplace.updateListing(basicNft.address, TOKEN_ID, NEW_PRICE)).to.be.reverted
+        })
+
+        it("only allows the owner to update the listing", async () =>
+        {
+            await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+
+            nftMarketplace = nftMarketplaceContract.connect(user)
+
+            await expect(nftMarketplace.updateListing(basicNft.address, TOKEN_ID, NEW_PRICE)).to.be.reverted
+        })
+
+        it("updates the listing in the listings mapping to reflect the updated price", async () =>
+        {
+            await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+            nftMarketplace.updateListing(basicNft.address, TOKEN_ID, NEW_PRICE)
+
+            const listing = await nftMarketplace.getListing(basicNft.address, TOKEN_ID)
+
+            assert(listing.price.toString() === NEW_PRICE.toString())
+        })
+
+        it("emits an ItemListed event when an item is updated", async () =>
+        {
+            await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+            expect(await nftMarketplace.updateListing(basicNft.address, TOKEN_ID, NEW_PRICE)).to.emit("ItemListed")
         })
     })
 
