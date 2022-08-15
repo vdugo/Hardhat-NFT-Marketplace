@@ -1,4 +1,4 @@
-const { deployments, ethers, network, getNamedAccounts } = require('hardhat')
+const { deployments, ethers, network } = require('hardhat')
 const { assert, expect } = require('chai')
 const { developmentChains } = require('../../helper-hardhat-config')
 
@@ -71,6 +71,11 @@ describe("NftMarketplace Unit Tests", async () =>
 
     describe("cancelListing", async () =>
     {
+        it("reverts if there is no listing for that NFT", async () =>
+        {
+            await expect(nftMarketplace.cancelListing(basicNft.address, TOKEN_ID)).to.be.reverted
+        })
+
         it("emits an event after cancelling an item", async () =>
         {
             await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
