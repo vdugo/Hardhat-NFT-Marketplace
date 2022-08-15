@@ -14,18 +14,20 @@ describe("NftMarketplace Unit Tests", async () =>
 
     beforeEach(async () =>
     {
-        deployer = (await getNamedAccounts()).deployer
         const accounts = await ethers.getSigners()
+        deployer = accounts[0]
         user = accounts[1]
         
         await deployments.fixture(["all"])
 
-        nftMarketplace = await ethers.getContract("NftMarketplace", deployer)
+        nftMarketplaceContract = await ethers.getContract("NftMarketplace")
+        nftMarketplace = nftMarketplaceContract.connect(deployer)
 
-        basicNft = await ethers.getContract("BasicNft", deployer)
+        basicNftContract = await ethers.getContract("BasicNft")
+        basicNft = basicNftContract.connect(deployer)
 
         await basicNft.mintNft()
-        await basicNft.approve(nftMarketplace.address, TOKEN_ID)
+        await basicNft.approve(nftMarketplaceContract.address, TOKEN_ID)
         
     })
 
@@ -61,10 +63,31 @@ describe("NftMarketplace Unit Tests", async () =>
             await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
             const listing = await nftMarketplace.getListing(basicNft.address, TOKEN_ID)
 
-            assert(listing.price.toString() === PRICE.toString())
-            assert(listing.seller.toString() === deployer.toString())
+            assert(listing.price.toString() === PRICE.toString(), "listing.price !== PRICE")
+            assert(listing.seller.toString() === deployer.address.toString(), 'listing.seller !== deployer')
         })
 
+    })
+
+    describe("cancelListing", async () =>
+    {
+        it("emits an event after cancelling an item", async () =>
+        {
+            await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+
+            expect(await nftMarketplace.cancelListing(basicNft.address, TOKEN_ID)).to.emit("ItemCanceled")
+        })
+
+        it("only allows the owner of the NFT to cancel the listing", async () =>
+        {
+            await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+
+            nftMarketplace = nftMarketplaceContract.connect(user)
+
+            await basicNft.approve(user.address, TOKEN_ID)
+
+            await expect(nftMarketplace.cancelListing(basicNft.address, TOKEN_ID)).to.be.reverted
+        })
     })
 
 })
