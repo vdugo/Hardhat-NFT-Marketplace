@@ -220,25 +220,44 @@ describe("NftMarketplace Unit Tests", async () =>
 
         it("sends the proceeds to the seller's address upon withdrawal", async () =>
         {
+            // deployer lists the item on the marketplace
             await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
 
+            // connect a different user to the marketplace and buy the deployer's item
             nftMarketplace = nftMarketplaceContract.connect(user)
             await nftMarketplace.buyItem(basicNft.address, TOKEN_ID, {value: PRICE})
 
+            // reconnect the deployer to the marketplace
             nftMarketplace = nftMarketplaceContract.connect(deployer)
 
+            // before we withdraw the proceeds, get the deployer's marketplace proceeds balance
+            // and also get the deployer's Ethereum address balance before
             const deployerProceedsBefore = await nftMarketplace.getProceeds(deployer.address)
             const deployerBalanceBefore = await deployer.getBalance()
 
+            // we need to calculate the gas cost, so get the transaction response and
+            // the receipt from that response, wait 1 block
             const txResponse = await nftMarketplace.withdrawProceeds()
             const txReceipt = await txResponse.wait(1)
 
+            // destructure the gasUsed and effectiveGasPrice for the transaction from the receipt
             const { gasUsed, effectiveGasPrice } = txReceipt
+            // ether cost = gas * gasPrice
             const gasCost = gasUsed.mul(effectiveGasPrice)
-
+            
+            // now get the deployer balance after the funds have been withdrawn
             const deployerBalanceAfter = await deployer.getBalance()
 
-            assert(deployerBalanceAfter.add(gasCost).toString() === deployerProceedsBefore.add(deployerBalanceBefore).toString())
+            // if the final Ethereum address balance of the deployer after the withdrawal plus adding back the gas fee
+            // is the same as the deployer marketplace proceeds before withdrawing plus the deployer's Ethereum address
+            // balance before they withdrew the proceeds, then the proceeds were properly transferred to the seller's address
+            // upon withdrawal
+            assert
+            (
+                deployerBalanceAfter.add(gasCost).toString() 
+                === 
+                deployerProceedsBefore.add(deployerBalanceBefore).toString()
+            )
         })
     })
 
