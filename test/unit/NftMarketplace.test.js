@@ -6,7 +6,7 @@ const { developmentChains } = require('../../helper-hardhat-config')
 :
 describe("NftMarketplace Unit Tests", async () =>
 {
-    let nftMarketplace, basicNft, deployer, player
+    let nftMarketplace, basicNft, deployer, user
 
     const PRICE = ethers.utils.parseEther("0.1")
 
@@ -16,7 +16,7 @@ describe("NftMarketplace Unit Tests", async () =>
     {
         deployer = (await getNamedAccounts()).deployer
         const accounts = await ethers.getSigners()
-        player = accounts[1]
+        user = accounts[1]
         
         await deployments.fixture(["all"])
 
@@ -29,15 +29,42 @@ describe("NftMarketplace Unit Tests", async () =>
         
     })
 
-    it("lists and can be bought", async () =>
+    describe("listItem", async () =>
     {
-        await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
-        const playerConnectedNftMarketplace = nftMarketplace.connect(player)
-        await playerConnectedNftMarketplace.buyItem(basicNft.address, TOKEN_ID, {value: PRICE})
-        const newOwner = await basicNft.ownerOf(TOKEN_ID)
-        const deployerProceeds = await nftMarketplace.getProceeds(deployer)
+        it("emits an event after listing an item", async () =>
+        {
+            expect(await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)).to.emit("ItemListed")
+        })
 
-        assert(newOwner.toString() === player.address)
-        assert(deployerProceeds.toString() === PRICE.toString())
+        it("does not allow an item to be listed if it's already listed", async () =>
+        {
+            await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+
+            await expect(nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)).to.be.reverted
+        })
+
+        it("does not allow an item to be listed for 0 or less", async () =>
+        {
+            await expect(nftMarketplace.listItem(basicNft.address, TOKEN_ID, 0)).to.be.reverted
+        })
+
+        it("needs approval for an item to be listed", async () =>
+        {
+            // approve the nft for an address that is not the marketplace so that
+            // the marketplace no longer has approval
+            await basicNft.approve(ethers.constants.AddressZero, TOKEN_ID)
+            await expect(nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)).to.be.reverted
+        })
+
+        it("updates the listings mapping when an item is listed", async () =>
+        {
+            await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+            const listing = await nftMarketplace.getListing(basicNft.address, TOKEN_ID)
+
+            assert(listing.price.toString() === PRICE.toString())
+            assert(listing.seller.toString() === deployer.toString())
+        })
+
     })
+
 })
