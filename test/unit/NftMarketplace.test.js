@@ -200,4 +200,46 @@ describe("NftMarketplace Unit Tests", async () =>
         })
     })
 
+    describe("withdrawProceeds", async () =>
+    {
+        it("reverts if the seller's proceeds are <= 0", async () =>
+        {
+            await expect(nftMarketplace.withdrawProceeds()).to.be.reverted
+        })
+
+        it("resets the proceeds mapping to 0 for the seller after they withdraw", async () =>
+        {
+            await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+            await nftMarketplace.buyItem(basicNft.address, TOKEN_ID, {value: PRICE})
+            await nftMarketplace.withdrawProceeds()
+
+            const sellerProceeds = await nftMarketplace.getProceeds(deployer.address)
+
+            assert(sellerProceeds.toString() === '0', 'sellerProceeds.toString() !== "0"')
+        })
+
+        it("sends the proceeds to the seller's address upon withdrawal", async () =>
+        {
+            await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+
+            nftMarketplace = nftMarketplaceContract.connect(user)
+            await nftMarketplace.buyItem(basicNft.address, TOKEN_ID, {value: PRICE})
+
+            nftMarketplace = nftMarketplaceContract.connect(deployer)
+
+            const deployerProceedsBefore = await nftMarketplace.getProceeds(deployer.address)
+            const deployerBalanceBefore = await deployer.getBalance()
+
+            const txResponse = await nftMarketplace.withdrawProceeds()
+            const txReceipt = await txResponse.wait(1)
+
+            const { gasUsed, effectiveGasPrice } = txReceipt
+            const gasCost = gasUsed.mul(effectiveGasPrice)
+
+            const deployerBalanceAfter = await deployer.getBalance()
+
+            assert(deployerBalanceAfter.add(gasCost).toString() === deployerProceedsBefore.add(deployerBalanceBefore).toString())
+        })
+    })
+
 })
