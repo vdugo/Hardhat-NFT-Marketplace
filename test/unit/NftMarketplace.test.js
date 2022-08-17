@@ -56,8 +56,7 @@ describe("NftMarketplace Unit Tests", async () =>
 
         it("needs approval for an item to be listed", async () =>
         {
-            // approve the nft for an address that is not the marketplace so that
-            // the marketplace no longer has approval
+            // approve the nft for address 0 means that there is no approval anymore
             await basicNft.approve(ethers.constants.AddressZero, TOKEN_ID)
             await expect(nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)).to.be.reverted
         })
