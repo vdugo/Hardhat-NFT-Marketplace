@@ -46,19 +46,19 @@ describe("NftMarketplace Unit Tests", async () =>
         {
             await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
 
-            await expect(nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)).to.be.reverted
+            await expect(nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)).to.be.revertedWith('NftMarketplace__AlreadyListed')
         })
 
         it("does not allow an item to be listed for 0 or less", async () =>
         {
-            await expect(nftMarketplace.listItem(basicNft.address, TOKEN_ID, 0)).to.be.reverted
+            await expect(nftMarketplace.listItem(basicNft.address, TOKEN_ID, 0)).to.be.revertedWith('NftMarketplace__PriceMustBeAboveZero')
         })
 
         it("needs approval for an item to be listed", async () =>
         {
             // approve the nft for address 0 means that there is no approval anymore
             await basicNft.approve(ethers.constants.AddressZero, TOKEN_ID)
-            await expect(nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)).to.be.reverted
+            await expect(nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)).to.be.revertedWith('NftMarketplace__NotApprovedForMarketplace')
         })
 
         it("updates the listings mapping when an item is listed", async () =>
@@ -76,7 +76,7 @@ describe("NftMarketplace Unit Tests", async () =>
     {
         it("reverts if there is no listing for that NFT", async () =>
         {
-            await expect(nftMarketplace.cancelListing(basicNft.address, TOKEN_ID)).to.be.reverted
+            await expect(nftMarketplace.cancelListing(basicNft.address, TOKEN_ID)).to.be.revertedWith('NftMarketplace__NotListed')
         })
 
         it("emits an event after cancelling an item", async () =>
@@ -94,7 +94,7 @@ describe("NftMarketplace Unit Tests", async () =>
 
             await basicNft.approve(user.address, TOKEN_ID)
 
-            await expect(nftMarketplace.cancelListing(basicNft.address, TOKEN_ID)).to.be.reverted
+            await expect(nftMarketplace.cancelListing(basicNft.address, TOKEN_ID)).to.be.revertedWith('NftMarketplace__NotOwner')
         })
 
         it("updates the listings mapping when an item is cancelled", async () =>
@@ -115,14 +115,14 @@ describe("NftMarketplace Unit Tests", async () =>
     {
         it("makes sure the NFT is listed before it can be bought", async () =>
         {
-            await expect(nftMarketplace.buyItem(basicNft.address, TOKEN_ID, {value: PRICE})).to.be.reverted
+            await expect(nftMarketplace.buyItem(basicNft.address, TOKEN_ID, {value: PRICE})).to.be.revertedWith('NftMarketplace__NotListed')
         })
 
         it("reverts if the sale price of the NFT is not met", async () =>
         {
             await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
 
-            await expect(nftMarketplace.buyItem(basicNft.address, TOKEN_ID, {value: INSUFFICIENT_PRICE})).to.be.reverted
+            await expect(nftMarketplace.buyItem(basicNft.address, TOKEN_ID, {value: INSUFFICIENT_PRICE})).to.be.revertedWith('NftMarketplace__PriceNotMet')
         })
 
         it("updates the proceeds mapping such that the seller balance increases by the sale price of the NFT", async () =>
@@ -170,7 +170,7 @@ describe("NftMarketplace Unit Tests", async () =>
     {
         it("reverts if attempting to update a listing that does not exist", async () =>
         {
-            await expect(nftMarketplace.updateListing(basicNft.address, TOKEN_ID, NEW_PRICE)).to.be.reverted
+            await expect(nftMarketplace.updateListing(basicNft.address, TOKEN_ID, NEW_PRICE)).to.be.revertedWith('NftMarketplace__NotListed')
         })
 
         it("only allows the owner to update the listing", async () =>
@@ -179,7 +179,7 @@ describe("NftMarketplace Unit Tests", async () =>
 
             nftMarketplace = nftMarketplaceContract.connect(user)
 
-            await expect(nftMarketplace.updateListing(basicNft.address, TOKEN_ID, NEW_PRICE)).to.be.reverted
+            await expect(nftMarketplace.updateListing(basicNft.address, TOKEN_ID, NEW_PRICE)).to.be.revertedWith('NftMarketplace__NotOwner')
         })
 
         it("updates the listing in the listings mapping to reflect the updated price", async () =>
@@ -203,7 +203,7 @@ describe("NftMarketplace Unit Tests", async () =>
     {
         it("reverts if the seller's proceeds are <= 0", async () =>
         {
-            await expect(nftMarketplace.withdrawProceeds()).to.be.reverted
+            await expect(nftMarketplace.withdrawProceeds()).to.be.revertedWith('NftMarketplace__NoProceeds')
         })
 
         it("resets the proceeds mapping to 0 for the seller after they withdraw", async () =>
